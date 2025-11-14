@@ -10,14 +10,18 @@ class ReportRepository {
     /**
      * Создает новый отчет в базе данных
      * @param report объект Report, который нужно сохранить
+     * @param userId ID пользователя, создающего отчет
      * @return ID созданного отчета
      */
-    fun createReport(report: Report): Int {
+    fun createReport(report: Report, userId: Int): Int {
         return transaction {
             ReportTable.insert {
+                it[ReportTable.userId] = userId
                 it[deviceId] = report.deviceId
                 it[frequency] = report.frequency
                 it[mark] = report.mark
+                it[screen] = report.screen
+                it[body] = report.body
                 it[width] = report.width
                 it[height] = report.height
                 it[density] = report.density
@@ -36,37 +40,44 @@ class ReportRepository {
     }
 
     /**
-     * Получение всех отчетов
+     * Получение всех отчетов пользователя
+     * @param userId ID пользователя
      * @return список объектов Report из базы данных
      */
-    fun getAllReports(): List<Report> {
+    fun getAllReports(userId: Int): List<Report> {
         return transaction {
-            ReportTable.selectAll().map { rowToReport(it) }
+            ReportTable.select { ReportTable.userId eq userId }.map { rowToReport(it) }
         }
     }
 
     /**
-     * Получение отчета по `deviceId`
+     * Получение отчета по `deviceId` и userId
      * @param deviceId ID устройства
+     * @param userId ID пользователя
      * @return объект Report или null, если отчет не найден
      */
-    fun getReportByDeviceId(deviceId: String): Report? {
+    fun getReportByDeviceId(deviceId: String, userId: Int): Report? {
         return transaction {
-            ReportTable.select { ReportTable.deviceId eq deviceId }
+            ReportTable.select { (ReportTable.deviceId eq deviceId) and (ReportTable.userId eq userId) }
                 .mapNotNull { rowToReport(it) }
                 .singleOrNull()
         }
     }
 
     /**
-     * Обновление отчета по `deviceId`
+     * Обновление отчета по `deviceId` и userId
+     * @param deviceId ID устройства
+     * @param report новые данные отчета
+     * @param userId ID пользователя
      * @return true, если обновление было успешным, иначе false
      */
-    fun updateReport(deviceId: String, report: Report): Boolean {
+    fun updateReport(deviceId: String, report: Report, userId: Int): Boolean {
         return transaction {
-            ReportTable.update({ ReportTable.deviceId eq deviceId }) {
+            ReportTable.update({ (ReportTable.deviceId eq deviceId) and (ReportTable.userId eq userId) }) {
                 it[frequency] = report.frequency
                 it[mark] = report.mark
+                it[screen] = report.screen
+                it[body] = report.body
                 it[width] = report.width
                 it[height] = report.height
                 it[density] = report.density
@@ -85,12 +96,29 @@ class ReportRepository {
     }
 
     /**
-     * Удаление отчета по ID
+     * Получение последнего отчета пользователя
+     * @param userId ID пользователя
+     * @return объект Report или null, если отчетов нет
+     */
+    fun getLatestReport(userId: Int): Report? {
+        return transaction {
+            ReportTable.select { ReportTable.userId eq userId }
+                .orderBy(ReportTable.id, SortOrder.DESC)
+                .limit(1)
+                .mapNotNull { rowToReport(it) }
+                .singleOrNull()
+        }
+    }
+
+    /**
+     * Удаление отчета по ID и userId
+     * @param id ID отчета
+     * @param userId ID пользователя
      * @return true, если удаление было успешным, иначе false
      */
-    fun deleteReportById(id: Int): Boolean {
+    fun deleteReportById(id: Int, userId: Int): Boolean {
         return transaction {
-            ReportTable.deleteWhere { ReportTable.id eq id } > 0
+            ReportTable.deleteWhere { (ReportTable.id eq id) and (ReportTable.userId eq userId) } > 0
         }
     }
 

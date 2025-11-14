@@ -1,0 +1,15 @@
+# Исключаем лишнее из контекста сборки
+.build/
+build/
+.gradle/
+**/*.log
+.git
+.gitignore
+README.md
+Dockerfile.old
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+

@@ -4,6 +4,7 @@ import org.jetbrains.exposed.sql.Table
 
 object ReportTable : Table("reports") {
     val id = integer("id").autoIncrement()
+    val userId = integer("userId").references(UserTable.id)
     val deviceId = varchar("deviceId", 255).nullable()
     val frequency = varchar("frequency", 255)
     val mark = varchar("mark", 255)

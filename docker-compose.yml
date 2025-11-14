@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: phoenix_postgres
+    environment:
+      POSTGRES_DB: phoenix
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d phoenix"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  app:
+    build: .
+    container_name: phoenix_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/phoenix
+      - DATABASE_USER=admin
+      - DATABASE_PASSWORD=password
+      - JWT_SECRET=phoenix-super-secret-jwt-key-2024
+      - JWT_ISSUER=phoenix-app
+      - JWT_AUDIENCE=phoenix-users
+      - PYTHON_API_URL=http://host.docker.internal:8000
+      - PYTHON_API_TIMEOUT=60000
+    volumes:
+      - app_logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  app_logs:
